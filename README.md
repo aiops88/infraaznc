@@ -1,5 +1,5 @@
 # 🛒 Infraestructura en AWS - E-Commerce Escalable  
-
+Diagrama de Arquitectura de Aplicación: https://claude.ai/public/artifacts/4b178b01-b748-4162-b8cf-fbe39ab9e34e?fullscreen=false
 Este repositorio contiene los **templates de AWS CloudFormation** y configuraciones relacionadas con la **infraestructura del e-commerce**, incluyendo red, seguridad, cómputo, CI/CD y monitoreo.  
 
 El diseño sigue principios de **escalabilidad, alta disponibilidad, seguridad y optimización de costos**, utilizando **Infraestructura como Código (IaC)** para garantizar despliegues reproducibles, automatizados y fáciles de mantener.  
