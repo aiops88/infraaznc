@@ -158,26 +158,113 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable
-      
-  ECSServiceSecurityGroup:
+
+  # ========== SECURITY GROUPS ==========
+  
+  # Security Group para ALB (Internet-facing)
+  ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
+      GroupName: !Sub "${ProjectName}-alb-sg"
+      GroupDescription: Security group para Application Load Balancer
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP desde internet
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS desde internet
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          DestinationSecurityGroupId: !Ref ECSSecurityGroup
+          Description: Hacia ECS tasks
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-alb-sg"
+
+  # Security Group para ECS Tasks (solo tráfico desde ALB)
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectName}-ecs-sg"
       GroupDescription: Security group para tareas ECS Fargate
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: HTTP desde ALB únicamente
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
           CidrIp: 0.0.0.0/0
+          Description: HTTPS para APIs externas
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          DestinationSecurityGroupId: !Ref DatabaseSecurityGroup
+          Description: PostgreSQL hacia base de datos
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          DestinationSecurityGroupId: !Ref CacheSecurityGroup
+          Description: Redis hacia cache
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-ecs-sg"
 
+  # Security Group para Database (solo desde ECS)
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectName}-db-sg"
+      GroupDescription: Security group para base de datos PostgreSQL
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref ECSSecurityGroup
+          Description: PostgreSQL desde ECS únicamente
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-db-sg"
+
+  # Security Group para Cache (solo desde ECS)
+  CacheSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectName}-cache-sg"
+      GroupDescription: Security group para ElastiCache Redis
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          SourceSecurityGroupId: !Ref ECSSecurityGroup
+          Description: Redis desde ECS únicamente
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-cache-sg"
 
 Outputs:
+  # ========== VPC OUTPUTS ==========
   VpcId:
     Description: VPC Id
     Value: !Ref VPC
     Export:
-      Name: !Sub "${ProjectName}--vpc"
+      Name: !Sub "${ProjectName}-vpc"
 
+  # ========== SUBNET OUTPUTS ==========
   PublicSubnetIds:
     Description: Public subnet IDs (comma separated)
     Value: !Join [",", [!Ref PublicSubnet1, !Ref PublicSubnet2]]
@@ -190,19 +277,7 @@ Outputs:
     Export:
       Name: !Sub "${ProjectName}-private-subnets"
 
-  # Exports individuales para las subnets privadas
-  PrivateSubnet1Id:
-    Description: Private subnet 1 ID
-    Value: !Ref PrivateSubnet1
-    Export:
-      Name: !Sub "${ProjectName}-private-1"
-
-  PrivateSubnet2Id:
-    Description: Private subnet 2 ID
-    Value: !Ref PrivateSubnet2
-    Export:
-      Name: !Sub "${ProjectName}-private-2"
-  
+  # Exports individuales para las subnets
   PublicSubnet1Id:
     Description: Public subnet 1 ID
     Value: !Ref PublicSubnet1
@@ -214,9 +289,47 @@ Outputs:
     Value: !Ref PublicSubnet2
     Export:
       Name: !Sub "${ProjectName}-public-2"
+
+  PrivateSubnet1Id:
+    Description: Private subnet 1 ID
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: !Sub "${ProjectName}-private-1"
+
+  PrivateSubnet2Id:
+    Description: Private subnet 2 ID
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub "${ProjectName}-private-2"
+
+  # ========== SECURITY GROUP OUTPUTS ==========
+  ALBSecurityGroupId:
+    Description: ID del Security Group para ALB
+    Value: !Ref ALBSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-alb-sg"
+
+  ECSSecurityGroupId:
+    Description: ID del Security Group para ECS
+    Value: !Ref ECSSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-ecs-sg"
       
+  DatabaseSecurityGroupId:
+    Description: ID del Security Group para Database
+    Value: !Ref DatabaseSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-db-sg"
+      
+  CacheSecurityGroupId:
+    Description: ID del Security Group para Cache
+    Value: !Ref CacheSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-cache-sg"
+
+  # MANTENER COMPATIBILIDAD con templates existentes
   ServiceSecurityGroupId:
-    Description: Security Group
-    Value: !Ref ECSServiceSecurityGroup
+    Description: Security Group para ECS (compatibilidad)
+    Value: !Ref ECSSecurityGroup
     Export:
       Name: !Sub "${ProjectName}-sg"
