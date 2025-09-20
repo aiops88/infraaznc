@@ -354,3 +354,23 @@ Docker Images: Multi-stage optimizadas en ECR
 Health Checks: /actuator/health endpoint
 
 Para issues de infraestructura, consultar los logs de CloudFormation y CloudWatch
+
+## Estimación básica de costos (ejemplo mensual en us-east-1)
+Esto es solo un escenario base con tráfico moderado y autoescalado activado.
+ECS Fargate
+- 2 servicios (frontend + backend), cada uno con 2 tasks mínimos (0.5 vCPU + 1GB RAM).
+- ~$50–60 USD/mes (depende del uso real)
+Application Load Balancer (ALB)
+- ~$18 USD/mes (fijo).
+VPC + NAT Gateway
+- NAT Gateway ~ $32 USD/mes (1 unidad).
+VPC y subnets no tienen costo adicional directo.
+ECR (almacenamiento de imágenes)
+~ $1–2 USD/mes (por 1–2 GB).
+CloudWatch Logs y métricas
+~ $10–20 USD/mes (depende del volumen de logs).
+S3 (para artefactos/estáticos)
+~ $1–5 USD/mes.
+
+📌 Total estimado: entre $110–140 USD/mes en un escenario base.
+Con picos altos y más tasks escaladas en ECS, el costo puede crecer proporcionalmente
