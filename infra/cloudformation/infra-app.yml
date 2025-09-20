@@ -87,7 +87,6 @@ Resources:
                 'Fn::Sub': "${ProjectName}-public-2"
      
         
- # ACTUALIZAR: infra-app.yml - Task Definition
 ECSBackendTaskDefinition:
   Type: AWS::ECS::TaskDefinition
   Properties:
@@ -95,32 +94,29 @@ ECSBackendTaskDefinition:
     RequiresCompatibilities:
       - FARGATE
     NetworkMode: awsvpc
-    Cpu: '512'  # Aumentado
-    Memory: '1024'  # Aumentado
+    Cpu: '512'
+    Memory: '1024'
     ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
     TaskRoleArn: !GetAtt ECSTaskRole.Arn
     ContainerDefinitions:
       - Name: !Sub "${ProjectName}-backend-container"
-        Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepoBackend}:latest"
+        Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWSRegion}.amazonaws.com/${ECRRepoBackend}:latest"
         PortMappings:
           - ContainerPort: 8080
         Environment:
           - Name: SPRING_PROFILES_ACTIVE
             Value: production
-          - Name: DATABASE_URL
-            Value: !Sub "jdbc:postgresql://${AuroraCluster.Endpoint.Address}:5432/festivos"
-          - Name: REDIS_HOST
-            Value: !GetAtt RedisCluster.PrimaryEndPoint.Address
-        Secrets:
-          - Name: DATABASE_USERNAME
-            ValueFrom: !Sub "${DBSecret}:username"
-          - Name: DATABASE_PASSWORD
-            ValueFrom: !Sub "${DBSecret}:password"
+          - Name: SPRING_DATASOURCE_URL
+            Value: "jdbc:postgresql://localhost:5432/festivos"  # TEMPORAL - hasta RDS
+          - Name: SPRING_DATASOURCE_USERNAME
+            Value: postgres
+          - Name: SPRING_DATASOURCE_PASSWORD
+            Value: sa
         LogConfiguration:
           LogDriver: awslogs
           Options:
             awslogs-group: !Ref ECSLogGroupBackend
-            awslogs-region: !Ref AWS::Region
+            awslogs-region: !Ref AWSRegion
             awslogs-stream-prefix: ecs
         HealthCheck:
           Command:
@@ -130,7 +126,6 @@ ECSBackendTaskDefinition:
           Timeout: 5
           Retries: 3
           StartPeriod: 60
-  
   
   # IAM Role: ECS Task Execution Role
   ECSTaskExecutionRole:
